@@ -1,0 +1,29 @@
+---
+- name: Customize the OpenShift Master Web-Console
+  hosts: masters
+  become: yes
+  gather_facts: yes
+  vars:
+    new_line: "  templates:\n    login: '/etc/origin/master/login-template.html'\n    providerSelection: '/etc/origin/master/provider-selection-template.html'"
+  tasks:
+    - name: Place custom html files on masters
+      copy:
+        src: "www/{{ item }}"
+        dest: "/etc/origin/master/{{ item }}"
+      with_items:
+        - login-template.html
+        - provider-selection-template.html
+
+    - name: Mod master-config.yml
+      lineinfile:
+        path: /etc/origin/master/master-config.yaml
+        insertafter: "oauthConfig:"
+        state: present
+        line: "{{ new_line }}"
+
+    - name: Restart Master api and controllers
+      shell: "/usr/local/bin/master-restart {{ item }}"
+      run_once: true
+      with_items:
+        - api
+        - controllers
